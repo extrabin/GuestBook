@@ -1,10 +1,19 @@
-HELP.md
+# ===== Maven 빌드 결과물 (EC2에서 빌드하므로 커밋 불필요) =====
 target/
-.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
 
-### STS ###
+# Maven Wrapper: 스크립트와 설정은 커밋, 자동 다운로드되는 jar만 제외
+.mvn/wrapper/maven-wrapper.jar
+
+# Spring Initializr가 생성한 안내 문서 (빌드에 불필요)
+HELP.md
+
+# ===== 로그 =====
+*.log
+logs/
+
+# ===== STS / Eclipse =====
 .apt_generated
 .classpath
 .factorypath
@@ -13,13 +22,13 @@ target/
 .springBeans
 .sts4-cache
 
-### IntelliJ IDEA ###
+# ===== IntelliJ IDEA =====
 .idea
 *.iws
 *.iml
 *.ipr
 
-### NetBeans ###
+# ===== NetBeans =====
 /nbproject/private/
 /nbbuild/
 /dist/
@@ -29,5 +38,9 @@ build/
 !**/src/main/**/build/
 !**/src/test/**/build/
 
-### VS Code ###
+# ===== VS Code =====
 .vscode/
+
+# ===== OS 생성 파일 =====
+.DS_Store
+Thumbs.db
