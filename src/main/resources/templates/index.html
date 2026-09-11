@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>방명록</title>
+    <!-- Tailwind CSS를 CDN으로 로드 (별도 빌드 불필요) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 min-h-screen">
+<div class="max-w-2xl mx-auto p-6">
+
+    <header class="mb-6">
+        <h1 class="text-3xl font-bold text-slate-800">📖 방명록</h1>
+        <p class="text-slate-500 mt-1">한 줄 남기고 가세요. AWS EC2 위에서 돌아갑니다.</p>
+    </header>
+
+    <!-- 작성 폼: /entries 로 POST -->
+    <form th:action="@{/entries}" method="post"
+          class="bg-white rounded-xl shadow p-5 mb-6 space-y-3">
+        <input type="text" name="name" placeholder="이름" required
+               class="w-full border border-slate-300 rounded-lg px-3 py-2
+                      focus:outline-none focus:ring-2 focus:ring-indigo-400"/>
+        <textarea name="message" placeholder="메시지" required rows="2"
+                  class="w-full border border-slate-300 rounded-lg px-3 py-2
+                         focus:outline-none focus:ring-2 focus:ring-indigo-400"></textarea>
+        <button type="submit"
+                class="w-full bg-indigo-600 hover:bg-indigo-700 text-white
+                       font-semibold rounded-lg px-4 py-2 transition">
+            남기기
+        </button>
+    </form>
+
+    <!-- 목록 -->
+    <section class="space-y-3">
+        <p th:if="${entries.isEmpty()}" class="text-center text-slate-400 py-8">
+            아직 남겨진 메시지가 없습니다. 첫 글을 남겨보세요!
+        </p>
+
+        <article th:each="entry : ${entries}"
+                 class="bg-white rounded-xl shadow p-4">
+            <div class="flex items-center justify-between">
+                <span class="font-semibold text-slate-800" th:text="${entry.name}">이름</span>
+                <span class="text-xs text-slate-400" th:text="${entry.formattedTime}">시각</span>
+            </div>
+            <p class="text-slate-700 mt-1 whitespace-pre-line"
+               th:text="${entry.message}">메시지</p>
+        </article>
+    </section>
+
+    <!-- 어느 인스턴스가 응답했는지 표시 (13장 로드 밸런서 실습에서 확인) -->
+    <footer class="text-center text-xs text-slate-400 mt-8">
+        served by <span class="font-mono" th:text="${hostname}">host</span>
+    </footer>
+
+</div>
+</body>
+</html>
