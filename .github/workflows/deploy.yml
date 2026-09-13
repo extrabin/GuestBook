@@ -1,0 +1,73 @@
+name: Deploy to AWS (ECR + EC2)
+
+# main 브랜치에 push하면 자동 실행. 수동 실행(workflow_dispatch)도 허용.
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+# OIDC로 AWS 임시 자격증명을 받기 위해 필요 (액세스 키 불필요)
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: ap-northeast-2
+  ECR_REPOSITORY: guestbook
+
+jobs:
+  # ── 1. 이미지 빌드 후 ECR에 push (기존 "빌드용 EC2" 역할 대체) ──
+  build-and-push:
+    runs-on: ubuntu-latest
+    outputs:
+      image: ${{ steps.build.outputs.image }}
+    steps:
+      - name: 소스 체크아웃
+        uses: actions/checkout@v4
+
+      - name: AWS 자격증명 설정 (OIDC 역할 assume)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}   # GitHub → AWS OIDC 역할 ARN
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: ECR 로그인
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: 이미지 빌드 · 태그 · push
+        id: build
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}   # 커밋 해시로 태그 → 롤백 용이
+        run: |
+          docker build \
+            -t "$REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" \
+            -t "$REGISTRY/$ECR_REPOSITORY:latest" .
+          docker push "$REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+          docker push "$REGISTRY/$ECR_REPOSITORY:latest"
+          echo "image=$REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> "$GITHUB_OUTPUT"
+
+  # ── 2. 서비스용 EC2에 SSH 접속 → 새 이미지 pull & 재시작 ──
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: EC2에 SSH 배포
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.EC2_HOST }}          # EC2 퍼블릭 IP/DNS
+          username: ${{ secrets.EC2_USER }}       # 예: ec2-user
+          key: ${{ secrets.EC2_SSH_KEY }}         # .pem 개인키 내용
+          envs: IMAGE
+          script: |
+            set -euxo pipefail
+            REGION=ap-northeast-2
+            REGISTRY=$(echo "$IMAGE" | cut -d/ -f1)
+            aws ecr get-login-password --region "$REGION" \
+              | docker login --username AWS --password-stdin "$REGISTRY"
+            docker pull "$IMAGE"
+            docker rm -f guestbook 2>/dev/null || true
+            docker run -d --name guestbook --restart always -p 8080:8080 "$IMAGE"
+        env:
+          IMAGE: ${{ needs.build-and-push.outputs.image }}
