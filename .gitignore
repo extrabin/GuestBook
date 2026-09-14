@@ -44,3 +44,19 @@ build/
 # ===== OS 생성 파일 =====
 .DS_Store
 Thumbs.db
+
+# ===== 비밀정보·키 (실수 커밋 방지) =====
+# SSH 개인키, 인증서, 키스토어
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+# 환경변수·자격증명 파일
+.env
+.env.*
+**/credentials
+aws-credentials*
+# 배포 실습 중 생성되는 IAM 신뢰정책 임시 파일
+trust*.json
